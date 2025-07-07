@@ -5,32 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analyseur de Notes Scolaires</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script>
-        // Configuration de PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
     </script>
+    <style>
+        .gradient-text {
+            background: linear-gradient(to right, #4f46e5, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
+<body class="bg-gray-50 font-sans antialiased">
+    <div class="container mx-auto px-4 py-8 md:py-12">
         <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">
-                <i class="fas fa-graduation-cap text-indigo-600 mr-3"></i>
-                Analyseur de Notes Scolaires
+        <div class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-800 mb-2">
+                Analyseur de <span class="gradient-text">Notes Scolaires</span>
             </h1>
-            <p class="text-gray-600">Uploadez votre relevé de notes PDF pour extraire toutes vos notes et calculer vos moyennes</p>
+            <p class="text-lg text-gray-500 max-w-2xl mx-auto">Extrayez vos notes depuis un PDF ou saisissez-les manuellement pour un calcul instantané de vos moyennes.</p>
         </div>
 
         <!-- Mode Toggle -->
-        <div class="max-w-2xl mx-auto mb-4 text-center">
-            <div class="inline-flex rounded-md shadow-sm">
-                <button id="mode-pdf-btn" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-l-lg hover:bg-indigo-700 focus:z-10 focus:ring-2 focus:ring-indigo-500">
+        <div class="max-w-md mx-auto mb-8 flex justify-center">
+            <div class="relative flex p-1 bg-gray-200 rounded-full shadow-inner">
+                <span id="mode-slider" class="absolute top-1 left-1 h-[calc(100%-0.5rem)] w-1/2 bg-white rounded-full shadow-md transition-transform duration-300 ease-in-out transform"></span>
+                <button id="mode-pdf-btn" class="relative z-10 w-1/2 py-2 px-4 text-sm font-semibold rounded-full flex items-center justify-center transition-colors">
                     <i class="fas fa-file-pdf mr-2"></i>
                     Upload PDF
                 </button>
-                <button id="mode-manual-btn" class="px-4 py-2 text-sm font-medium text-indigo-600 bg-white border-t border-b border-r border-indigo-600 hover:bg-gray-50 rounded-r-lg focus:z-10 focus:ring-2 focus:ring-indigo-500">
+                <button id="mode-manual-btn" class="relative z-10 w-1/2 py-2 px-4 text-sm font-semibold rounded-full flex items-center justify-center transition-colors">
                     <i class="fas fa-keyboard mr-2"></i>
                     Saisie Manuelle
                 </button>
@@ -38,7 +56,7 @@
         </div>
 
         <!-- PDF Upload Section -->
-        <div id="pdf-section">
+        <div id="pdf-section" class="transition-opacity duration-300">
             <div class="max-w-2xl mx-auto mb-8">
                 <div id="upload-area" class="border-2 border-dashed border-indigo-300 rounded-lg p-8 text-center bg-white shadow-lg hover:border-indigo-400 transition-colors cursor-pointer">
                     <i class="fas fa-cloud-upload-alt text-6xl text-indigo-400 mb-4"></i>
@@ -61,7 +79,7 @@
         </div>
 
         <!-- Manual Entry Section -->
-        <div id="manual-section" class="hidden">
+        <div id="manual-section" class="hidden transition-opacity duration-300">
             <div class="max-w-4xl mx-auto mb-8">
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <h3 class="text-xl font-semibold text-gray-700 mb-6 flex items-center justify-center">
@@ -83,20 +101,43 @@
 
         <!-- Results Section -->
         <div id="results-section" class="hidden max-w-6xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">
-                    <i class="fas fa-calculator text-indigo-600 mr-2"></i>
-                    Résultats de l'analyse
+            <div class="bg-white/60 backdrop-blur-sm border border-gray-200 rounded-2xl shadow-lg p-6 md:p-8">
+                <h2 class="text-3xl font-bold text-gray-800 mb-8 text-center">
+                    <i class="fas fa-calculator text-indigo-500 mr-3"></i>
+                    Vos Résultats
                 </h2>
                 
                 <!-- All Detected Notes -->
-                <div class="mb-6">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
-                        <i class="fas fa-list text-indigo-600 mr-2"></i>
-                        Toutes les notes détectées
+                <div class="mb-8">
+                    <h3 class="text-xl font-bold text-gray-700 mb-4 flex items-center">
+                        <i class="fas fa-list-ol text-indigo-500 mr-3"></i>
+                        Détail des Notes
                     </h3>
-                    <div id="all-notes-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <!-- Les notes seront ajoutées dynamiquement ici -->
+                    <div id="all-notes-container" class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <!-- Les cartes de notes améliorées seront ici -->
+                    </div>
+                </div>
+
+                <!-- Averages Section -->
+                <div class="grid md:grid-cols-2 gap-6 lg:gap-8">
+                    <!-- French Average -->
+                    <div id="french-average-card" class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-6 rounded-xl shadow-lg transition-all hover:scale-[1.02]">
+                        <h3 class="text-lg font-bold mb-2">Moyenne de Français</h3>
+                        <div class="text-5xl font-extrabold mb-2 flex items-baseline">
+                            <span id="moyenne-finale">--</span>
+                            <span class="text-2xl font-semibold ml-1">/20</span>
+                        </div>
+                        <p id="calcul-detail" class="text-indigo-100 text-sm">Calcul en attente...</p>
+                    </div>
+                    
+                    <!-- General Average -->
+                    <div id="general-average-card" class="bg-gradient-to-br from-green-500 to-emerald-600 text-white p-6 rounded-xl shadow-lg transition-all hover:scale-[1.02]">
+                        <h3 class="text-lg font-bold mb-2">Moyenne Générale</h3>
+                        <div class="text-5xl font-extrabold mb-2 flex items-baseline">
+                            <span id="moyenne-generale">--</span>
+                             <span class="text-2xl font-semibold ml-1">/20</span>
+                        </div>
+                        <p id="nombre-matieres" class="text-emerald-100 text-sm">Basée sur -- matières</p>
                     </div>
                 </div>
 
@@ -127,24 +168,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- French Average -->
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-6 text-white text-center mb-6">
-                    <h3 class="text-xl font-semibold mb-2">Moyenne Français</h3>
-                    <div class="text-4xl font-bold mb-2">
-                        <span id="moyenne-finale">--</span><span class="text-2xl">/20</span>
-                    </div>
-                    <p id="calcul-detail" class="text-indigo-100">Calcul en attente...</p>
-                </div>
-
-                <!-- General Average -->
-                <div class="bg-gradient-to-r from-green-500 to-blue-600 rounded-lg p-6 text-white text-center mb-6">
-                    <h3 class="text-xl font-semibold mb-2">Moyenne Générale</h3>
-                    <div class="text-4xl font-bold mb-2">
-                        <span id="moyenne-generale">--</span><span class="text-2xl">/20</span>
-                    </div>
-                    <p id="nombre-matieres" class="text-green-100">Basée sur -- matières</p>
                 </div>
 
                 <!-- Actions -->
