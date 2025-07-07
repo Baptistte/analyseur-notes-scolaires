@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyseur de Notes Scolaires</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        // Configuration de PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-graduation-cap text-indigo-600 mr-3"></i>
+                Analyseur de Notes Scolaires
+            </h1>
+            <p class="text-gray-600">Uploadez votre relevé de notes PDF pour extraire toutes vos notes et calculer vos moyennes</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="max-w-2xl mx-auto mb-8">
+            <div id="upload-area" class="border-2 border-dashed border-indigo-300 rounded-lg p-8 text-center bg-white shadow-lg hover:border-indigo-400 transition-colors cursor-pointer">
+                <i class="fas fa-cloud-upload-alt text-6xl text-indigo-400 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">Glissez-déposez votre fichier PDF ici</h3>
+                <p class="text-gray-500 mb-4">ou cliquez pour sélectionner un fichier</p>
+                <input type="file" id="file-input" accept=".pdf" class="hidden">
+                <button id="select-file-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                    Sélectionner un fichier
+                </button>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div id="progress-container" class="hidden mt-4">
+                <div class="bg-gray-200 rounded-full h-2">
+                    <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="progress-text" class="text-sm text-gray-600 mt-1">Traitement en cours...</p>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" class="hidden max-w-6xl mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                    <i class="fas fa-calculator text-indigo-600 mr-2"></i>
+                    Résultats de l'analyse
+                </h2>
+                
+                <!-- All Detected Notes -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-list text-indigo-600 mr-2"></i>
+                        Toutes les notes détectées
+                    </h3>
+                    <div id="all-notes-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Les notes seront ajoutées dynamiquement ici -->
+                    </div>
+                </div>
+
+                <!-- French Specific Section -->
+                <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-graduation-cap text-indigo-600 mr-2"></i>
+                        Focus Français
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="bg-blue-100 rounded-lg p-4">
+                            <h4 class="text-lg font-semibold text-blue-800 mb-2">
+                                <i class="fas fa-pen text-blue-600 mr-2"></i>
+                                Note Écrite
+                            </h4>
+                            <div class="text-2xl font-bold text-blue-800">
+                                <span id="note-ecrite">--</span>/20
+                            </div>
+                        </div>
+                        
+                        <div class="bg-green-100 rounded-lg p-4">
+                            <h4 class="text-lg font-semibold text-green-800 mb-2">
+                                <i class="fas fa-microphone text-green-600 mr-2"></i>
+                                Note Orale
+                            </h4>
+                            <div class="text-2xl font-bold text-green-800">
+                                <span id="note-orale">--</span>/20
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- French Average -->
+                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-6 text-white text-center mb-6">
+                    <h3 class="text-xl font-semibold mb-2">Moyenne Français</h3>
+                    <div class="text-4xl font-bold mb-2">
+                        <span id="moyenne-finale">--</span><span class="text-2xl">/20</span>
+                    </div>
+                    <p id="calcul-detail" class="text-indigo-100">Calcul en attente...</p>
+                </div>
+
+                <!-- General Average -->
+                <div class="bg-gradient-to-r from-green-500 to-blue-600 rounded-lg p-6 text-white text-center mb-6">
+                    <h3 class="text-xl font-semibold mb-2">Moyenne Générale</h3>
+                    <div class="text-4xl font-bold mb-2">
+                        <span id="moyenne-generale">--</span><span class="text-2xl">/20</span>
+                    </div>
+                    <p id="nombre-matieres" class="text-green-100">Basée sur -- matières</p>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <button id="download-pdf-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-download mr-2"></i>
+                        Télécharger le récapitulatif PDF
+                    </button>
+                    <button id="copy-results-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-copy mr-2"></i>
+                        Copier les résultats
+                    </button>
+                    <button id="new-calculation-btn" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nouveau calcul
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Section -->
+        <div id="error-section" class="hidden max-w-2xl mx-auto">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                <div class="flex items-center mb-3">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-xl mr-3"></i>
+                    <h3 class="text-lg font-semibold text-red-800">Erreur lors du traitement</h3>
+                </div>
+                <p id="error-message" class="text-red-700 mb-4">Une erreur s'est produite.</p>
+                <button id="retry-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                    <i class="fas fa-redo mr-2"></i>
+                    Réessayer
+                </button>
+            </div>
+        </div>
+
+        <!-- Explanation Section -->
+        <div class="max-w-4xl mx-auto mt-12 mb-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+                    <i class="fas fa-info-circle text-indigo-600 mr-2"></i>
+                    Explication des Coefficients et Calculs
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Coefficients -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-weight-hanging text-blue-600 mr-2"></i>
+                            Coefficients par Matière
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                                <span class="font-medium">🖊️ Français écrit</span>
+                                <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold">5</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                                <span class="font-medium">🎤 Français oral</span>
+                                <span class="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">5</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
+                                <span class="font-medium">📊 Mathématiques</span>
+                                <span class="bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-bold">8</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                                <span class="font-medium">🌍 Histoire-Géographie</span>
+                                <span class="bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-bold">3</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                                <span class="font-medium">🗣️ Langues vivantes (LV1/LV2)</span>
+                                <span class="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">3</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-teal-50 rounded-lg">
+                                <span class="font-medium">🔬 Enseignement scientifique</span>
+                                <span class="bg-teal-600 text-white px-3 py-1 rounded-full text-sm font-bold">3</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                                <span class="font-medium">⚖️ Enseignement moral et civique</span>
+                                <span class="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">1</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Calculs -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-calculator text-green-600 mr-2"></i>
+                            Formules de Calcul
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <!-- Moyenne Français -->
+                            <div class="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-l-4 border-indigo-500">
+                                <h4 class="font-semibold text-indigo-800 mb-2">Moyenne Français</h4>
+                                <div class="text-sm text-gray-700">
+                                    <div class="font-mono bg-white p-2 rounded border mb-2">
+                                        (Écrit × 5 + Oral × 5) ÷ 10
+                                    </div>
+                                    <p class="text-xs">Les deux épreuves de français ont le même poids (coefficient 5 chacune)</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Moyenne Générale -->
+                            <div class="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-l-4 border-green-500">
+                                <h4 class="font-semibold text-green-800 mb-2">Moyenne Générale Pondérée</h4>
+                                <div class="text-sm text-gray-700">
+                                    <div class="font-mono bg-white p-2 rounded border mb-2 text-xs">
+                                        (Note₁×Coef₁ + Note₂×Coef₂ + ...) ÷ (Coef₁ + Coef₂ + ...)
+                                    </div>
+                                    <p class="text-xs mb-2"><strong>Exemple concret :</strong></p>
+                                    <div class="font-mono bg-gray-50 p-2 rounded text-xs">
+                                        (Français_écrit×5 + Français_oral×5 + Maths×8 + Histoire×3 + ...) ÷ (5+5+8+3+...)
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Importance -->
+                            <div class="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                <h4 class="font-semibold text-amber-800 mb-1">💡 Pourquoi ces coefficients ?</h4>
+                                <p class="text-xs text-amber-700">
+                                    Les coefficients reflètent l'importance relative de chaque matière dans le cursus scolaire. 
+                                    Les mathématiques (coef 8) ont plus de poids que l'EMC (coef 1).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Example calculation -->
+                <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-semibold text-gray-800 mb-3">📝 Exemple de Calcul Complet</h4>
+                    <div class="text-sm text-gray-700 space-y-2">
+                        <p><strong>Notes détectées :</strong></p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                            <span>• Français écrit: 8,00 (×5)</span>
+                            <span>• Français oral: 12,00 (×5)</span>
+                            <span>• Mathématiques: 8,70 (×8)</span>
+                            <span>• Histoire-Géo: 10,80 (×3)</span>
+                            <span>• Anglais: 15,40 (×3)</span>
+                            <span>• Espagnol: 14,20 (×3)</span>
+                            <span>• Sciences: 11,00 (×3)</span>
+                            <span>• EMC: 14,50 (×1)</span>
+                        </div>
+                        
+                        <div class="mt-3 p-3 bg-white rounded border">
+                            <p><strong>Calcul moyenne générale :</strong></p>
+                            <div class="font-mono text-xs mt-1">
+                                (8×5 + 12×5 + 8.7×8 + 10.8×3 + 15.4×3 + 14.2×3 + 11×3 + 14.5×1) ÷ (5+5+8+3+3+3+3+1)
+                            </div>
+                            <div class="font-mono text-xs mt-1">
+                                = (40 + 60 + 69.6 + 32.4 + 46.2 + 42.6 + 33 + 14.5) ÷ 31 = <strong>338.3 ÷ 31 = 10.91/20</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-500">
+            <p>Outil d'analyse complète des relevés de notes scolaires</p>
+            <p class="text-sm mt-1">Extraction automatique de toutes les matières • Focus spécial français</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html> 
