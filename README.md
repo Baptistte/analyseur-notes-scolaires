@@ -6,6 +6,10 @@ Application web complète pour l'extraction automatique de toutes les notes scol
 
 ## ✨ Fonctionnalités
 
+#### Deux Modes de Saisie
+- **<i class="fas fa-file-pdf"></i> Upload de Fichier PDF** : Pour une analyse entièrement automatisée de vos relevés de notes.
+- **<i class="fas fa-keyboard"></i> Saisie Manuelle** : Pour un calcul rapide en entrant directement vos notes.
+
 ### 🔄 Upload de fichier PDF
 - Interface intuitive avec glisser-déposer
 - Sélection de fichier par clic
@@ -24,6 +28,12 @@ Application web complète pour l'extraction automatique de toutes les notes scol
   - Et autres matières détectables
 - Compatible avec les formats PDF des différentes académies
 - Patterns de reconnaissance multiples et robustes
+
+### ⌨️ Saisie Manuelle des Notes
+- Formulaire dédié pour entrer les notes de chaque matière.
+- Champs de saisie clairs avec icônes et coefficients.
+- Validation des entrées (notes entre 0 et 20).
+- Calcul instantané des moyennes après soumission.
 
 ### 🧮 Calculs de moyennes
 - **Moyenne Français** : Formule pondérée `(écrit × 5 + oral × 5) / 10`
@@ -48,13 +58,14 @@ Application web complète pour l'extraction automatique de toutes les notes scol
 - Interface moderne et responsive
 - Gestion d'erreurs avec messages explicites
 
-## 🚀 Utilisation
+## �� Utilisation
 
-1. **Ouvrir l'application** : Ouvrez le fichier `index.html` dans votre navigateur web
-2. **Uploader un PDF** : Glissez-déposez ou sélectionnez votre relevé de notes PDF
-3. **Attendre l'analyse** : L'application traite automatiquement le document
-4. **Consulter les résultats** : Vérifiez les notes détectées et la moyenne calculée
-5. **Exporter si besoin** : Téléchargez ou copiez les résultats
+1. **Choisir le mode** : Sélectionnez "Upload PDF" ou "Saisie Manuelle".
+2. **Si PDF** : Glissez-déposez ou sélectionnez votre relevé de notes.
+3. **Si Manuel** : Remplissez les notes pour les matières souhaitées.
+4. **Calculer** : Cliquez sur le bouton pour obtenir vos résultats.
+5. **Consulter les résultats** : Vérifiez les notes et les moyennes calculées.
+6. **Exporter si besoin** : Téléchargez ou copiez les résultats.
 
 ## 🛠️ Technologies utilisées
 
@@ -69,7 +80,7 @@ Application web complète pour l'extraction automatique de toutes les notes scol
 
 - Navigateur web moderne (Chrome, Firefox, Safari, Edge)
 - Connexion internet (pour les CDN)
-- Fichiers PDF lisibles contenant des notes de français
+- Fichiers PDF lisibles contenant des notes de français (pour le mode PDF)
 
 ## 🎯 Formats PDF supportés
 
@@ -99,6 +110,7 @@ L'application recherche les patterns suivants dans le texte :
 
 - **Fichier illisible** : Vérification du format PDF
 - **Notes non détectées** : Message d'erreur explicite
+- **Saisie invalide** : Messages d'erreur pour les notes hors plage (0-20)
 - **Possibilité de réessayer** : Bouton pour relancer l'analyse
 
 ## 🔄 Améliorations futures possibles

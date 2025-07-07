@@ -23,6 +23,13 @@ function initializeEventListeners() {
     const copyResultsBtn = document.getElementById('copy-results-btn');
     const newCalculationBtn = document.getElementById('new-calculation-btn');
     const retryBtn = document.getElementById('retry-btn');
+    const modePdfBtn = document.getElementById('mode-pdf-btn');
+    const modeManualBtn = document.getElementById('mode-manual-btn');
+    const manualForm = document.getElementById('manual-form');
+
+    // Mode selector events
+    modePdfBtn.addEventListener('click', () => switchMode('pdf'));
+    modeManualBtn.addEventListener('click', () => switchMode('manual'));
 
     // Upload events
     uploadArea.addEventListener('click', () => fileInput.click());
@@ -37,6 +44,9 @@ function initializeEventListeners() {
     uploadArea.addEventListener('dragover', handleDragOver);
     uploadArea.addEventListener('drop', handleDrop);
     uploadArea.addEventListener('dragleave', handleDragLeave);
+
+    // Manual form event
+    manualForm.addEventListener('submit', handleManualSubmit);
 
     // Action buttons
     downloadPdfBtn.addEventListener('click', downloadRecapPDF);
@@ -170,83 +180,7 @@ function extractNotesFromText(text) {
     let toutesLesNotes = {};
 
     // Définition des matières à détecter avec leurs coefficients
-    const matieres = {
-        'francais-ecrit': {
-            name: 'Français écrit',
-            icon: 'fas fa-pen',
-            color: 'blue',
-            coefficient: 5,
-            patterns: [
-                /(?:francais|français)[\s\w]*?(?:ecrit|écrit)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
-                /(?:ecrit|écrit)[\s\w]*?(?:francais|français)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'francais-oral': {
-            name: 'Français oral',
-            icon: 'fas fa-microphone',
-            color: 'green',
-            coefficient: 5,
-            patterns: [
-                /(?:francais|français)[\s\w]*?(?:oral|orale)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
-                /(?:oral|orale)[\s\w]*?(?:francais|français)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'histoire-geo': {
-            name: 'Histoire-Géographie',
-            icon: 'fas fa-globe',
-            color: 'yellow',
-            coefficient: 3,
-            patterns: [
-                /(?:histoire|géographie|geographie|histoire[\s\-]*geographie|histoire[\s\-]*géographie)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'emc': {
-            name: 'Enseignement moral et civique',
-            icon: 'fas fa-balance-scale',
-            color: 'purple',
-            coefficient: 1,
-            patterns: [
-                /(?:enseignement[\s\w]*moral[\s\w]*civique|moral[\s\w]*civique|emc)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'anglais': {
-            name: 'Langue vivante A - Anglais',
-            icon: 'fas fa-language',
-            color: 'red',
-            coefficient: 3,
-            patterns: [
-                /(?:langue[\s\w]*vivante[\s\w]*a[\s\w]*anglais|anglais|langue[\s\w]*anglais)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'espagnol': {
-            name: 'Langue vivante B - Espagnol',
-            icon: 'fas fa-language',
-            color: 'orange',
-            coefficient: 3,
-            patterns: [
-                /(?:langue[\s\w]*vivante[\s\w]*b[\s\w]*espagnol|espagnol|langue[\s\w]*espagnol)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'sciences': {
-            name: 'Enseignement scientifique',
-            icon: 'fas fa-flask',
-            color: 'teal',
-            coefficient: 3,
-            patterns: [
-                /enseignement[\s\w]*scientifique[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
-                /sciences[\s\w]*(?:physiques?|naturelles?)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'maths': {
-            name: 'Mathématiques',
-            icon: 'fas fa-calculator',
-            color: 'indigo',
-            coefficient: 8,
-            patterns: [
-                /(?:mathematiques|mathématiques|maths|math)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        }
-    };
+    const matieres = getMatieres();
 
     // Extraction de toutes les notes ligne par ligne pour plus de précision
     const lines = text.split('\n');
@@ -630,4 +564,190 @@ function resetApplication() {
     hideResults();
     hideError();
     hideProgress();
+}
+
+function switchMode(mode) {
+    const uploadSection = document.getElementById('upload-section');
+    const manualSection = document.getElementById('manual-entry-section');
+    const modePdfBtn = document.getElementById('mode-pdf-btn');
+    const modeManualBtn = document.getElementById('mode-manual-btn');
+
+    if (mode === 'pdf') {
+        uploadSection.classList.remove('hidden');
+        manualSection.classList.add('hidden');
+        modePdfBtn.classList.add('bg-indigo-600', 'text-white', 'shadow');
+        modeManualBtn.classList.remove('bg-indigo-600', 'text-white', 'shadow');
+    } else if (mode === 'manual') {
+        uploadSection.classList.add('hidden');
+        manualSection.classList.remove('hidden');
+        modeManualBtn.classList.add('bg-indigo-600', 'text-white', 'shadow');
+        modePdfBtn.classList.remove('bg-indigo-600', 'text-white', 'shadow');
+        populateManualForm(); // Populate form when switching to manual
+    }
+    resetApplication();
+}
+
+function populateManualForm() {
+    const container = document.getElementById('manual-notes-container');
+    if (!container) return;
+    container.innerHTML = ''; // Clear previous fields
+
+    const matieres = getMatieres();
+
+    Object.entries(matieres).forEach(([key, matiere]) => {
+        const inputGroup = document.createElement('div');
+        inputGroup.className = 'flex flex-col';
+        
+        const label = document.createElement('label');
+        label.htmlFor = `note-${key}`;
+        label.className = 'mb-1 text-sm font-medium text-gray-600 flex items-center';
+        label.innerHTML = `<i class="${matiere.icon} mr-2"></i> ${matiere.name} (coef ${matiere.coefficient})`;
+        
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.id = `note-${key}`;
+        input.name = key;
+        input.className = 'p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500';
+        input.step = "0.01";
+        input.min = "0";
+        input.max = "20";
+        input.placeholder = "ex: 14.5";
+
+        inputGroup.appendChild(label);
+        inputGroup.appendChild(input);
+        container.appendChild(inputGroup);
+    });
+}
+
+function handleManualSubmit(e) {
+    e.preventDefault();
+    hideError();
+    resetApplication();
+
+    const formData = new FormData(e.target);
+    const notesSaisies = {};
+    const matieres = getMatieres();
+    let hasAtLeastOneNote = false;
+
+    for (const [key, value] of formData.entries()) {
+        if (value !== '' && !isNaN(parseFloat(value))) {
+            const note = parseFloat(value);
+            if (note >= 0 && note <= 20) {
+                notesSaisies[key] = {
+                    ...matieres[key],
+                    note: note
+                };
+                hasAtLeastOneNote = true;
+            } else {
+                showError(`La note pour "${matieres[key].name}" doit être entre 0 et 20.`);
+                return;
+            }
+        }
+    }
+
+    if (!hasAtLeastOneNote) {
+        showError('Veuillez saisir au moins une note pour effectuer le calcul.');
+        return;
+    }
+    
+    // Calculs
+    const noteEcrite = notesSaisies['francais-ecrit'] ? notesSaisies['francais-ecrit'].note : null;
+    const noteOrale = notesSaisies['francais-oral'] ? notesSaisies['francais-oral'].note : null;
+    const moyenneFr = noteEcrite !== null && noteOrale !== null 
+        ? calculateAverage(noteEcrite, noteOrale, 5, 5) 
+        : null;
+
+    const moyenneGenerale = calculateGeneralAverage(notesSaisies);
+
+    extractedData = {
+        noteEcrite: noteEcrite,
+        noteOrale: noteOrale,
+        coefEcrite: 5,
+        coefOrale: 5,
+        moyenne: moyenneFr,
+        toutesLesNotes: notesSaisies,
+        moyenneGenerale: moyenneGenerale
+    };
+    
+    displayResults();
+}
+
+function getMatieres() {
+    return {
+        'francais-ecrit': {
+            name: 'Français écrit',
+            icon: 'fas fa-pen',
+            color: 'blue',
+            coefficient: 5,
+            patterns: [
+                /(?:francais|français)[\s\w]*?(?:ecrit|écrit)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
+                /(?:ecrit|écrit)[\s\w]*?(?:francais|français)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+            ]
+        },
+        'francais-oral': {
+            name: 'Français oral',
+            icon: 'fas fa-microphone',
+            color: 'green',
+            coefficient: 5,
+            patterns: [
+                /(?:francais|français)[\s\w]*?(?:oral|orale)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
+                /(?:oral|orale)[\s\w]*?(?:francais|français)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+            ]
+        },
+        'histoire-geo': {
+            name: 'Histoire-Géographie',
+            icon: 'fas fa-globe',
+            color: 'yellow',
+            coefficient: 3,
+            patterns: [
+                /(?:histoire|géographie|geographie|histoire[\s\-]*geographie|histoire[\s\-]*géographie)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+            ]
+        },
+        'emc': {
+            name: 'Enseignement moral et civique',
+            icon: 'fas fa-balance-scale',
+            color: 'purple',
+            coefficient: 1,
+            patterns: [
+                /(?:enseignement[\s\w]*moral[\s\w]*civique|moral[\s\w]*civique|emc)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+            ]
+        },
+        'anglais': {
+            name: 'Langue vivante A - Anglais',
+            icon: 'fas fa-language',
+            color: 'red',
+            coefficient: 3,
+            patterns: [
+                /(?:langue[\s\w]*vivante[\s\w]*a[\s\w]*anglais|anglais|langue[\s\w]*anglais)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+            ]
+        },
+        'espagnol': {
+            name: 'Langue vivante B - Espagnol',
+            icon: 'fas fa-language',
+            color: 'orange',
+            coefficient: 3,
+            patterns: [
+                /(?:langue[\s\w]*vivante[\s\w]*b[\s\w]*espagnol|espagnol|langue[\s\w]*espagnol)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+            ]
+        },
+        'sciences': {
+            name: 'Enseignement scientifique',
+            icon: 'fas fa-flask',
+            color: 'teal',
+            coefficient: 3,
+            patterns: [
+                /enseignement[\s\w]*scientifique[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
+                /sciences[\s\w]*(?:physiques?|naturelles?)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+            ]
+        },
+        'maths': {
+            name: 'Mathématiques',
+            icon: 'fas fa-calculator',
+            color: 'indigo',
+            coefficient: 8,
+            patterns: [
+                /(?:mathematiques|mathématiques|maths|math)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+            ]
+        }
+    };
 } 

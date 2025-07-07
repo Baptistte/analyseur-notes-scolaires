@@ -23,24 +23,61 @@
             <p class="text-gray-600">Uploadez votre relevé de notes PDF pour extraire toutes vos notes et calculer vos moyennes</p>
         </div>
 
-        <!-- Upload Section -->
-        <div class="max-w-2xl mx-auto mb-8">
-            <div id="upload-area" class="border-2 border-dashed border-indigo-300 rounded-lg p-8 text-center bg-white shadow-lg hover:border-indigo-400 transition-colors cursor-pointer">
-                <i class="fas fa-cloud-upload-alt text-6xl text-indigo-400 mb-4"></i>
-                <h3 class="text-xl font-semibold text-gray-700 mb-2">Glissez-déposez votre fichier PDF ici</h3>
-                <p class="text-gray-500 mb-4">ou cliquez pour sélectionner un fichier</p>
-                <input type="file" id="file-input" accept=".pdf" class="hidden">
-                <button id="select-file-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
-                    Sélectionner un fichier
+        <!-- Mode Toggle -->
+        <div class="max-w-2xl mx-auto mb-4 text-center">
+            <div class="inline-flex rounded-md shadow-sm">
+                <button id="mode-pdf-btn" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-l-lg hover:bg-indigo-700 focus:z-10 focus:ring-2 focus:ring-indigo-500">
+                    <i class="fas fa-file-pdf mr-2"></i>
+                    Upload PDF
+                </button>
+                <button id="mode-manual-btn" class="px-4 py-2 text-sm font-medium text-indigo-600 bg-white border-t border-b border-r border-indigo-600 hover:bg-gray-50 rounded-r-lg focus:z-10 focus:ring-2 focus:ring-indigo-500">
+                    <i class="fas fa-keyboard mr-2"></i>
+                    Saisie Manuelle
                 </button>
             </div>
-            
-            <!-- Progress Bar -->
-            <div id="progress-container" class="hidden mt-4">
-                <div class="bg-gray-200 rounded-full h-2">
-                    <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- PDF Upload Section -->
+        <div id="pdf-section">
+            <div class="max-w-2xl mx-auto mb-8">
+                <div id="upload-area" class="border-2 border-dashed border-indigo-300 rounded-lg p-8 text-center bg-white shadow-lg hover:border-indigo-400 transition-colors cursor-pointer">
+                    <i class="fas fa-cloud-upload-alt text-6xl text-indigo-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Glissez-déposez votre fichier PDF ici</h3>
+                    <p class="text-gray-500 mb-4">ou cliquez pour sélectionner un fichier</p>
+                    <input type="file" id="file-input" accept=".pdf" class="hidden">
+                    <button id="select-file-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                        Sélectionner un fichier
+                    </button>
                 </div>
-                <p id="progress-text" class="text-sm text-gray-600 mt-1">Traitement en cours...</p>
+                
+                <!-- Progress Bar -->
+                <div id="progress-container" class="hidden mt-4">
+                    <div class="bg-gray-200 rounded-full h-2">
+                        <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="progress-text" class="text-sm text-gray-600 mt-1">Traitement en cours...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Entry Section -->
+        <div id="manual-section" class="hidden">
+            <div class="max-w-4xl mx-auto mb-8">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-6 flex items-center justify-center">
+                        <i class="fas fa-keyboard text-indigo-600 mr-2"></i>
+                        Saisissez vos notes manuellement
+                    </h3>
+                    <form id="manual-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
+                        <!-- Les champs de notes seront générés ici par JS -->
+                    </form>
+                    <div class="text-center mt-8">
+                        <button id="manual-calculate-btn" class="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition-colors text-lg font-semibold shadow-md hover:shadow-lg">
+                            <i class="fas fa-calculator mr-2"></i>
+                            Calculer les moyennes
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
