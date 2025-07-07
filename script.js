@@ -10,6 +10,97 @@ let extractedData = {
     moyenneGenerale: null
 };
 
+// Définition des matières à détecter avec leurs coefficients
+const matieres = {
+    'francais-ecrit': {
+        name: 'Français écrit',
+        icon: 'fas fa-pen',
+        color: 'blue',
+        coefficient: 5,
+        patterns: [
+            /(?:francais|français)[\s\w]*?(?:ecrit|écrit)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
+            /(?:ecrit|écrit)[\s\w]*?(?:francais|français)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+        ]
+    },
+    'francais-oral': {
+        name: 'Français oral',
+        icon: 'fas fa-microphone',
+        color: 'green',
+        coefficient: 5,
+        patterns: [
+            /(?:francais|français)[\s\w]*?(?:oral|orale)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
+            /(?:oral|orale)[\s\w]*?(?:francais|français)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+        ]
+    },
+    'histoire-geo': {
+        name: 'Histoire-Géographie',
+        icon: 'fas fa-globe',
+        color: 'yellow',
+        coefficient: 3,
+        patterns: [
+            /(?:histoire|géographie|geographie|histoire[\s\-]*geographie|histoire[\s\-]*géographie)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+        ]
+    },
+    'emc': {
+        name: 'Enseignement moral et civique',
+        icon: 'fas fa-balance-scale',
+        color: 'purple',
+        coefficient: 1,
+        patterns: [
+            /(?:enseignement[\s\w]*moral[\s\w]*civique|moral[\s\w]*civique|emc)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+        ]
+    },
+    'anglais': {
+        name: 'Langue vivante A - Anglais',
+        icon: 'fas fa-language',
+        color: 'red',
+        coefficient: 3,
+        patterns: [
+            /(?:langue[\s\w]*vivante[\s\w]*a[\s\w]*anglais|anglais|langue[\s\w]*anglais)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+        ]
+    },
+    'espagnol': {
+        name: 'Langue vivante B - Espagnol',
+        icon: 'fas fa-language',
+        color: 'orange',
+        coefficient: 3,
+        patterns: [
+            /(?:langue[\s\w]*vivante[\s\w]*b[\s\w]*espagnol|espagnol|langue[\s\w]*espagnol)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+        ]
+    },
+    'sciences': {
+        name: 'Enseignement scientifique',
+        icon: 'fas fa-flask',
+        color: 'teal',
+        coefficient: 3,
+        patterns: [
+            /enseignement[\s\w]*scientifique[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
+            /sciences[\s\w]*(?:physiques?|naturelles?)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+        ]
+    },
+    'maths': {
+        name: 'Mathématiques',
+        icon: 'fas fa-calculator',
+        color: 'indigo',
+        coefficient: 8,
+        patterns: [
+            /(?:mathematiques|mathématiques|maths|math)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+        ]
+    }
+};
+
+// Définition des couleurs pour les icônes
+const iconColors = {
+    blue: '#3B82F6',
+    green: '#10B981', 
+    yellow: '#F59E0B',
+    purple: '#8B5CF6',
+    red: '#EF4444',
+    orange: '#F97316',
+    teal: '#14B8A6',
+    indigo: '#6366F1'
+};
+
 // Initialisation de l'application
 document.addEventListener('DOMContentLoaded', function() {
     initializeEventListeners();
@@ -25,11 +116,7 @@ function initializeEventListeners() {
     const retryBtn = document.getElementById('retry-btn');
     const modePdfBtn = document.getElementById('mode-pdf-btn');
     const modeManualBtn = document.getElementById('mode-manual-btn');
-    const manualForm = document.getElementById('manual-form');
-
-    // Mode selector events
-    modePdfBtn.addEventListener('click', () => switchMode('pdf'));
-    modeManualBtn.addEventListener('click', () => switchMode('manual'));
+    const manualCalculateBtn = document.getElementById('manual-calculate-btn');
 
     // Upload events
     uploadArea.addEventListener('click', () => fileInput.click());
@@ -45,18 +132,25 @@ function initializeEventListeners() {
     uploadArea.addEventListener('drop', handleDrop);
     uploadArea.addEventListener('dragleave', handleDragLeave);
 
-    // Manual form event
-    manualForm.addEventListener('submit', handleManualSubmit);
-
     // Action buttons
     downloadPdfBtn.addEventListener('click', downloadRecapPDF);
     copyResultsBtn.addEventListener('click', copyResults);
-    newCalculationBtn.addEventListener('click', resetApplication);
+    newCalculationBtn.addEventListener('click', () => resetApplication(true));
     retryBtn.addEventListener('click', () => {
         if (currentFile) {
             processFile(currentFile);
         }
     });
+
+    // Mode toggle buttons
+    modePdfBtn.addEventListener('click', showPdfMode);
+    modeManualBtn.addEventListener('click', showManualMode);
+
+    // Manual calculation button
+    manualCalculateBtn.addEventListener('click', handleManualCalculate);
+
+    // Initial setup
+    populateManualForm();
 }
 
 function handleDragOver(e) {
@@ -178,9 +272,6 @@ function extractNotesFromText(text) {
     let coefEcrite = 5;
     let coefOrale = 5;
     let toutesLesNotes = {};
-
-    // Définition des matières à détecter avec leurs coefficients
-    const matieres = getMatieres();
 
     // Extraction de toutes les notes ligne par ligne pour plus de précision
     const lines = text.split('\n');
@@ -548,7 +639,7 @@ Basée sur ${Object.keys(extractedData.toutesLesNotes).length} matière(s) • T
     });
 }
 
-function resetApplication() {
+function resetApplication(resetUi = true) {
     currentFile = null;
     extractedData = {
         noteEcrite: null,
@@ -560,194 +651,130 @@ function resetApplication() {
         moyenneGenerale: null
     };
     
-    document.getElementById('file-input').value = '';
-    hideResults();
-    hideError();
-    hideProgress();
+    if (resetUi) {
+        document.getElementById('file-input').value = '';
+        // Clear manual inputs
+        const manualInputs = document.querySelectorAll('#manual-form input');
+        manualInputs.forEach(input => {
+            input.value = '';
+            input.classList.remove('border-red-500');
+        });
+
+        hideResults();
+        hideError();
+        hideProgress();
+        showPdfMode(); // Default to PDF mode
+    }
 }
 
-function switchMode(mode) {
-    const uploadSection = document.getElementById('upload-section');
-    const manualSection = document.getElementById('manual-entry-section');
-    const modePdfBtn = document.getElementById('mode-pdf-btn');
-    const modeManualBtn = document.getElementById('mode-manual-btn');
+function showPdfMode() {
+    document.getElementById('pdf-section').classList.remove('hidden');
+    document.getElementById('manual-section').classList.add('hidden');
+    
+    const pdfBtn = document.getElementById('mode-pdf-btn');
+    const manualBtn = document.getElementById('mode-manual-btn');
+    
+    pdfBtn.classList.add('bg-indigo-600', 'text-white');
+    pdfBtn.classList.remove('bg-white', 'text-indigo-600');
+    
+    manualBtn.classList.add('bg-white', 'text-indigo-600');
+    manualBtn.classList.remove('bg-indigo-600', 'text-white');
 
-    if (mode === 'pdf') {
-        uploadSection.classList.remove('hidden');
-        manualSection.classList.add('hidden');
-        modePdfBtn.classList.add('bg-indigo-600', 'text-white', 'shadow');
-        modeManualBtn.classList.remove('bg-indigo-600', 'text-white', 'shadow');
-    } else if (mode === 'manual') {
-        uploadSection.classList.add('hidden');
-        manualSection.classList.remove('hidden');
-        modeManualBtn.classList.add('bg-indigo-600', 'text-white', 'shadow');
-        modePdfBtn.classList.remove('bg-indigo-600', 'text-white', 'shadow');
-        populateManualForm(); // Populate form when switching to manual
+    hideResults();
+    hideError();
+}
+
+function showManualMode() {
+    document.getElementById('pdf-section').classList.add('hidden');
+    document.getElementById('manual-section').classList.remove('hidden');
+
+    const pdfBtn = document.getElementById('mode-pdf-btn');
+    const manualBtn = document.getElementById('mode-manual-btn');
+    
+    manualBtn.classList.add('bg-indigo-600', 'text-white');
+    manualBtn.classList.remove('bg-white', 'text-indigo-600');
+    
+    pdfBtn.classList.add('bg-white', 'text-indigo-600');
+    pdfBtn.classList.remove('bg-indigo-600', 'text-white');
+    
+    hideResults();
+    hideError();
+}
+
+function handleManualCalculate(e) {
+    e.preventDefault();
+    resetApplication(false); // Reset data but not UI
+    
+    const inputs = document.querySelectorAll('#manual-form input');
+    let newToutesLesNotes = {};
+    let newNoteEcrite = null;
+    let newNoteOrale = null;
+    let hasValues = false;
+
+    inputs.forEach(input => {
+        // Reset border color
+        input.classList.remove('border-red-500');
+
+        if (input.value !== '') {
+            hasValues = true;
+            const key = input.dataset.key;
+            const note = parseFloat(input.value.replace(',', '.'));
+
+            if (!isNaN(note) && note >= 0 && note <= 20) {
+                const matiere = matieres[key];
+                newToutesLesNotes[key] = { ...matiere, note: note };
+                if (key === 'francais-ecrit') newNoteEcrite = note;
+                if (key === 'francais-oral') newNoteOrale = note;
+            } else {
+                input.classList.add('border-red-500');
+            }
+        }
+    });
+
+    if (document.querySelector('.border-red-500')) {
+        showError('Veuillez corriger les notes invalides (elles doivent être entre 0 et 20).');
+        return;
     }
-    resetApplication();
+
+    if (!hasValues) {
+        showError('Veuillez saisir au moins une note.');
+        return;
+    }
+
+    // Update global data
+    extractedData.toutesLesNotes = newToutesLesNotes;
+    extractedData.noteEcrite = newNoteEcrite;
+    extractedData.noteOrale = newNoteOrale;
+
+    // Perform calculations
+    if (newNoteEcrite !== null && newNoteOrale !== null) {
+        extractedData.moyenne = calculateAverage(newNoteEcrite, newNoteOrale, 5, 5);
+    }
+    extractedData.moyenneGenerale = calculateGeneralAverage(newToutesLesNotes);
+
+    // Display
+    displayResults();
+    document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
 }
 
 function populateManualForm() {
-    const container = document.getElementById('manual-notes-container');
-    if (!container) return;
-    container.innerHTML = ''; // Clear previous fields
-
-    const matieres = getMatieres();
-
+    const form = document.getElementById('manual-form');
+    form.innerHTML = ''; // Clear previous fields
+    
     Object.entries(matieres).forEach(([key, matiere]) => {
-        const inputGroup = document.createElement('div');
-        inputGroup.className = 'flex flex-col';
+        const field = document.createElement('div');
+        field.className = 'flex flex-col';
         
-        const label = document.createElement('label');
-        label.htmlFor = `note-${key}`;
-        label.className = 'mb-1 text-sm font-medium text-gray-600 flex items-center';
-        label.innerHTML = `<i class="${matiere.icon} mr-2"></i> ${matiere.name} (coef ${matiere.coefficient})`;
-        
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.id = `note-${key}`;
-        input.name = key;
-        input.className = 'p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500';
-        input.step = "0.01";
-        input.min = "0";
-        input.max = "20";
-        input.placeholder = "ex: 14.5";
-
-        inputGroup.appendChild(label);
-        inputGroup.appendChild(input);
-        container.appendChild(inputGroup);
+        field.innerHTML = `
+            <label for="note-${key}" class="mb-1 text-sm font-medium text-gray-700 flex items-center">
+                <i class="${matiere.icon} mr-2" style="color: ${iconColors[matiere.color] || '#6B7280'}"></i>
+                ${matiere.name} (coef ${matiere.coefficient})
+            </label>
+            <input type="number" id="note-${key}" name="note-${key}" data-key="${key}" 
+                   min="0" max="20" step="0.01" 
+                   class="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                   placeholder="ex: 12,5">
+        `;
+        form.appendChild(field);
     });
-}
-
-function handleManualSubmit(e) {
-    e.preventDefault();
-    hideError();
-    resetApplication();
-
-    const formData = new FormData(e.target);
-    const notesSaisies = {};
-    const matieres = getMatieres();
-    let hasAtLeastOneNote = false;
-
-    for (const [key, value] of formData.entries()) {
-        if (value !== '' && !isNaN(parseFloat(value))) {
-            const note = parseFloat(value);
-            if (note >= 0 && note <= 20) {
-                notesSaisies[key] = {
-                    ...matieres[key],
-                    note: note
-                };
-                hasAtLeastOneNote = true;
-            } else {
-                showError(`La note pour "${matieres[key].name}" doit être entre 0 et 20.`);
-                return;
-            }
-        }
-    }
-
-    if (!hasAtLeastOneNote) {
-        showError('Veuillez saisir au moins une note pour effectuer le calcul.');
-        return;
-    }
-    
-    // Calculs
-    const noteEcrite = notesSaisies['francais-ecrit'] ? notesSaisies['francais-ecrit'].note : null;
-    const noteOrale = notesSaisies['francais-oral'] ? notesSaisies['francais-oral'].note : null;
-    const moyenneFr = noteEcrite !== null && noteOrale !== null 
-        ? calculateAverage(noteEcrite, noteOrale, 5, 5) 
-        : null;
-
-    const moyenneGenerale = calculateGeneralAverage(notesSaisies);
-
-    extractedData = {
-        noteEcrite: noteEcrite,
-        noteOrale: noteOrale,
-        coefEcrite: 5,
-        coefOrale: 5,
-        moyenne: moyenneFr,
-        toutesLesNotes: notesSaisies,
-        moyenneGenerale: moyenneGenerale
-    };
-    
-    displayResults();
-}
-
-function getMatieres() {
-    return {
-        'francais-ecrit': {
-            name: 'Français écrit',
-            icon: 'fas fa-pen',
-            color: 'blue',
-            coefficient: 5,
-            patterns: [
-                /(?:francais|français)[\s\w]*?(?:ecrit|écrit)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
-                /(?:ecrit|écrit)[\s\w]*?(?:francais|français)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'francais-oral': {
-            name: 'Français oral',
-            icon: 'fas fa-microphone',
-            color: 'green',
-            coefficient: 5,
-            patterns: [
-                /(?:francais|français)[\s\w]*?(?:oral|orale)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
-                /(?:oral|orale)[\s\w]*?(?:francais|français)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'histoire-geo': {
-            name: 'Histoire-Géographie',
-            icon: 'fas fa-globe',
-            color: 'yellow',
-            coefficient: 3,
-            patterns: [
-                /(?:histoire|géographie|geographie|histoire[\s\-]*geographie|histoire[\s\-]*géographie)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'emc': {
-            name: 'Enseignement moral et civique',
-            icon: 'fas fa-balance-scale',
-            color: 'purple',
-            coefficient: 1,
-            patterns: [
-                /(?:enseignement[\s\w]*moral[\s\w]*civique|moral[\s\w]*civique|emc)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'anglais': {
-            name: 'Langue vivante A - Anglais',
-            icon: 'fas fa-language',
-            color: 'red',
-            coefficient: 3,
-            patterns: [
-                /(?:langue[\s\w]*vivante[\s\w]*a[\s\w]*anglais|anglais|langue[\s\w]*anglais)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'espagnol': {
-            name: 'Langue vivante B - Espagnol',
-            icon: 'fas fa-language',
-            color: 'orange',
-            coefficient: 3,
-            patterns: [
-                /(?:langue[\s\w]*vivante[\s\w]*b[\s\w]*espagnol|espagnol|langue[\s\w]*espagnol)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'sciences': {
-            name: 'Enseignement scientifique',
-            icon: 'fas fa-flask',
-            color: 'teal',
-            coefficient: 3,
-            patterns: [
-                /enseignement[\s\w]*scientifique[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
-                /sciences[\s\w]*(?:physiques?|naturelles?)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        },
-        'maths': {
-            name: 'Mathématiques',
-            icon: 'fas fa-calculator',
-            color: 'indigo',
-            coefficient: 8,
-            patterns: [
-                /(?:mathematiques|mathématiques|maths|math)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
-            ]
-        }
-    };
 } 
