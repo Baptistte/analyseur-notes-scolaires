@@ -206,11 +206,6 @@ async function processFile(file) {
             fullText += pageText + '\n';
         }
 
-        // --- AJOUT POUR LE DEBUG ---
-        console.log("--- Texte extrait du PDF ---");
-        console.log(fullText);
-        console.log("----------------------------");
-        
         updateProgress(60, 'Analyse des notes...');
         
         // Extraction des notes
@@ -267,44 +262,41 @@ function extractNotesFromText(text) {
     let noteOrale = null;
     let toutesLesNotes = {};
 
-    const lines = text.split('\\n');
+    // Normaliser le texte une seule fois
+    const normalizedText = text.toLowerCase()
+        .replace(/[àáâãäå]/g, 'a')
+        .replace(/[èéêë]/g, 'e')
+        .replace(/[ìíîï]/g, 'i')
+        .replace(/[òóôõö]/g, 'o')
+        .replace(/[ùúûü]/g, 'u')
+        .replace(/ç/g, 'c');
 
-    for (const line of lines) {
-        const normalizedLine = line.toLowerCase()
-            .replace(/[àáâãäå]/g, 'a')
-            .replace(/[èéêë]/g, 'e')
-            .replace(/[ìíîï]/g, 'i')
-            .replace(/[òóôõö]/g, 'o')
-            .replace(/[ùúûü]/g, 'u')
-            .replace(/ç/g, 'c');
+    // Itérer sur chaque matière définie
+    for (const [key, matiere] of Object.entries(matieres)) {
+        // Essayer chaque pattern pour la matière en cours
+        for (const pattern of matiere.patterns) {
+            const matches = [...normalizedText.matchAll(pattern)];
 
-        // Itérer sur chaque matière définie pour trouver une correspondance
-        for (const [key, matiere] of Object.entries(matieres)) {
-            // Si on n'a pas encore trouvé la note pour cette matière
-            if (!toutesLesNotes[key]) {
-                const matiereWords = matiere.name.toLowerCase().split(/\\s|-/);
-                const hasMatiere = matiereWords.every(word => normalizedLine.includes(word));
-                
-                // Si la ligne contient le nom de la matière, on cherche une note
-                if (hasMatiere) {
-                    // Regex pour trouver une note (un ou deux chiffres, suivis potentiellement d'une virgule/point et un ou deux chiffres)
-                    const notePattern = /(\\d{1,2}(?:[,.]\\d{1,2})?)/;
-                    const match = line.match(notePattern);
+            // Si des correspondances sont trouvées, prendre la dernière
+            // (souvent la plus pertinente, comme dans un tableau récapitulatif)
+            if (matches.length > 0) {
+                const lastMatch = matches[matches.length - 1];
+                const note = parseFloat(lastMatch[1].replace(',', '.'));
 
-                    if (match) {
-                        const note = parseFloat(match[1].replace(',', '.'));
-                        // Validation simple de la note
-                        if (note >= 0 && note <= 20) {
-                            toutesLesNotes[key] = { ...matiere, note };
-                            if (key === 'francais-ecrit') noteEcrite = note;
-                            if (key === 'francais-oral') noteOrale = note;
-                        }
-                    }
+                // Valider et assigner la note
+                if (note >= 0 && note <= 20) {
+                    toutesLesNotes[key] = { ...matiere, note };
+
+                    if (key === 'francais-ecrit') noteEcrite = note;
+                    if (key === 'francais-oral') noteOrale = note;
+                    
+                    // Une fois la note trouvée pour cette matière, passer à la suivante
+                    break;
                 }
             }
         }
     }
-
+    
     return { noteEcrite, noteOrale, coefEcrite: 5, coefOrale: 5, toutesLesNotes };
 }
 
