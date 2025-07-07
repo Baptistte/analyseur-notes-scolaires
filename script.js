@@ -233,7 +233,8 @@ function extractNotesFromText(text) {
             color: 'teal',
             coefficient: 3,
             patterns: [
-                /(?:enseignement[\s\w]*scientifique|sciences|scientifique)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
+                /enseignement[\s\w]*scientifique[\s\w]*?(\d+(?:[,\.]\d+)?)/gi,
+                /sciences[\s\w]*(?:physiques?|naturelles?)[\s\w]*?(\d+(?:[,\.]\d+)?)/gi
             ]
         },
         'maths': {
@@ -247,30 +248,7 @@ function extractNotesFromText(text) {
         }
     };
 
-    // Extraction de toutes les notes
-    for (const [key, matiere] of Object.entries(matieres)) {
-        for (const pattern of matiere.patterns) {
-            const matches = [...normalizedText.matchAll(pattern)];
-            for (const match of matches) {
-                const note = parseFloat(match[1].replace(',', '.'));
-                if (note >= 0 && note <= 20) {
-                    toutesLesNotes[key] = {
-                        ...matiere,
-                        note: note
-                    };
-                    
-                    // Garde compatibilité pour français
-                    if (key === 'francais-ecrit') noteEcrite = note;
-                    if (key === 'francais-oral') noteOrale = note;
-                    break;
-                }
-            }
-            if (toutesLesNotes[key]) break;
-        }
-    }
-
-    // Pattern générique pour récupérer des notes manquées
-    const genericPattern = /(\d+(?:[,\.]\d+)?)(?:\/20)?/g;
+    // Extraction de toutes les notes ligne par ligne pour plus de précision
     const lines = text.split('\n');
     
     for (const line of lines) {
@@ -281,6 +259,67 @@ function extractNotesFromText(text) {
             .replace(/[òóôõö]/g, 'o')
             .replace(/[ùúûü]/g, 'u')
             .replace(/ç/g, 'c');
+        
+        // Éviter les lignes de titre ou de format
+        if (normalizedLine.includes('note sur 20') || 
+            normalizedLine.includes('coefficient') || 
+            normalizedLine.includes('controle continu')) {
+            continue;
+        }
+        
+        for (const [key, matiere] of Object.entries(matieres)) {
+            if (!toutesLesNotes[key]) {
+                for (const pattern of matiere.patterns) {
+                    const matches = [...line.matchAll(pattern)];
+                    for (const match of matches) {
+                        const noteStr = match[1].replace(',', '.');
+                        const note = parseFloat(noteStr);
+                        
+                        // Validation stricte de la note
+                        if (note >= 0 && note <= 20 && 
+                            noteStr !== '20' && // Évite les "20" isolés
+                            noteStr !== '1' &&  // Évite les coefficients courants
+                            noteStr !== '3' && 
+                            noteStr !== '5' && 
+                            noteStr !== '8') {
+                            
+                            toutesLesNotes[key] = {
+                                ...matiere,
+                                note: note
+                            };
+                            
+                            // Garde compatibilité pour français
+                            if (key === 'francais-ecrit') noteEcrite = note;
+                            if (key === 'francais-oral') noteOrale = note;
+                            break;
+                        }
+                    }
+                    if (toutesLesNotes[key]) break;
+                }
+            }
+        }
+    }
+
+    // Pattern plus spécifique pour récupérer des notes manquées
+    // Évite de prendre "20" de "Note sur 20" ou des valeurs trop communes
+    // (Utilise les lignes déjà créées plus haut)
+    
+    for (const line of lines) {
+        const normalizedLine = line.toLowerCase()
+            .replace(/[àáâãäå]/g, 'a')
+            .replace(/[èéêë]/g, 'e')
+            .replace(/[ìíîï]/g, 'i')
+            .replace(/[òóôõö]/g, 'o')
+            .replace(/[ùúûü]/g, 'u')
+            .replace(/ç/g, 'c');
+
+        // Éviter les lignes contenant des mentions de format ou de titre
+        if (normalizedLine.includes('note sur 20') || 
+            normalizedLine.includes('coefficient') || 
+            normalizedLine.includes('controle continu') ||
+            normalizedLine.includes('livret')) {
+            continue;
+        }
 
         // Vérification pour chaque matière manquante
         for (const [key, matiere] of Object.entries(matieres)) {
@@ -292,10 +331,23 @@ function extractNotesFromText(text) {
                 );
                 
                 if (hasMatiere) {
-                    const noteMatches = [...line.matchAll(genericPattern)];
+                    // Pattern plus strict : doit être suivi d'un espace ou en fin de ligne, 
+                    // et évite les notes isolées comme juste "20"
+                    const strictPattern = /(\d{1,2}[,\.]\d{1,2}|\d{1,2}[,\.]\d|\d{1,2})(?=\s|$|[^,\.\d])/g;
+                    const noteMatches = [...line.matchAll(strictPattern)];
+                    
                     for (const match of noteMatches) {
-                        const note = parseFloat(match[1].replace(',', '.'));
-                        if (note >= 0 && note <= 20) {
+                        const noteStr = match[1].replace(',', '.');
+                        const note = parseFloat(noteStr);
+                        
+                        // Plus strict sur les valeurs acceptées
+                        if (note >= 0 && note <= 20 && 
+                            noteStr !== '20' && // Évite les "20" isolés
+                            noteStr !== '1' &&  // Évite les coefficients
+                            noteStr !== '3' && 
+                            noteStr !== '5' && 
+                            noteStr !== '8') {
+                            
                             toutesLesNotes[key] = {
                                 ...matiere,
                                 note: note
