@@ -1,0 +1,34 @@
+{
+  "name": "analyseur-notes-scolaires",
+  "version": "1.0.0",
+  "description": "🎓 Analyseur de Notes Scolaires - Application web pour extraire et calculer automatiquement les moyennes depuis des PDF de relevés de notes",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "education",
+    "notes",
+    "pdf",
+    "scolaire",
+    "moyenne",
+    "français",
+    "extraction",
+    "analyseur"
+  ],
+  "author": "Mathilde Projet",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VOTRE_USERNAME/analyseur-notes-scolaires.git"
+  },
+  "homepage": "https://VOTRE_USERNAME.github.io/analyseur-notes-scolaires/",
+  "dependencies": {},
+  "devDependencies": {},
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+} 
